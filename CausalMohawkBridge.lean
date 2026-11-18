@@ -41,3 +41,6 @@ import CausalMohawkBridge.Chernoff
 #print axioms CausalMohawkBridge.Lorentz.hMap_iff_dvd_cd
 #print axioms CausalMohawkBridge.Lorentz.sq_sub_eq_one
 #print axioms CausalMohawkBridge.PreprintBridge.theorem31
+#print axioms CausalMohawkBridge.Bridge.reach_to_epochs
+#print axioms CausalMohawkBridge.Bridge.bridge_parity
+#print axioms CausalMohawkBridge.CausalLattice.reach_iff_null

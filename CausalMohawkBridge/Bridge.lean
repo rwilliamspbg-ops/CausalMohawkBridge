@@ -41,7 +41,3 @@ theorem bridge_parity {e₁ e₂ : Event} (hr : Reach e₁ e₂) (p : OnParity e
   ⟨hr.parity p, s', hs, he⟩
 
 end CausalMohawkBridge.Bridge
-
-#print axioms CausalMohawkBridge.Bridge.reach_to_epochs
-#print axioms CausalMohawkBridge.Bridge.bridge_parity
-#print axioms CausalMohawkBridge.CausalLattice.reach_iff_null

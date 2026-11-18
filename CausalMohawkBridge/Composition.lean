@@ -158,10 +158,10 @@ def tailProbSys (m k : Nat) : ProbSys Unit where
   sys := { step := fun _ _ => False, inv := fun _ => True }
   fail := fun _ => Chernoff.tailNat k m
 
-/-- Its failure counter satisfies the repair hypothesis with the cleared
-    Chernoff bound. -/
+/-- Its failure counter satisfies the repair hypothesis with the Chernoff
+    tail bound `3^m`. -/
 theorem tailProbSys_repair (m k : Nat) :
-    probRepair (tailProbSys m k) (2 ^ m * 3 ^ m) := by
+    probRepair (tailProbSys m k) (3 ^ m) := by
   intro s s' _ _
   exact Chernoff.tailNat_le m k
 

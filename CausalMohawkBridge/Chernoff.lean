@@ -281,15 +281,13 @@ theorem tailNat_bound (m k : Nat) : (2 : Nat) ^ k * tailNat k m ≤ 3 ^ m := by
     exact h
   exact Int.ofNat_le.mp h'
 
-/-- The tail is bounded by the cleared denominator expression. -/
-theorem tailNat_le (m k : Nat) : tailNat k m ≤ 2 ^ m * 3 ^ m := by
+/-- The tail is bounded by `3^m` (the cleared `2^k · tail ≤ 3^m` with `2^k ≥ 1`). -/
+theorem tailNat_le (m k : Nat) : tailNat k m ≤ 3 ^ m := by
   have hb : (2 : Nat) ^ k * tailNat k m ≤ 3 ^ m := tailNat_bound m k
   have h1 : tailNat k m ≤ (2 : Nat) ^ k * tailNat k m :=
     Nat.le_mul_of_pos_left (n := (2 : Nat) ^ k) (tailNat k m)
       (Nat.pow_pos (a := 2) (n := k) (by omega))
-  have h2 : 3 ^ m ≤ 2 ^ m * 3 ^ m :=
-    Nat.le_mul_of_pos_left (n := 2 ^ m) (3 ^ m) (Nat.pow_pos (a := 2) (n := m) (by omega))
-  exact Nat.le_trans (Nat.le_trans h1 hb) h2
+  exact Nat.le_trans h1 hb
 
 /- Numerical sanity checks (evaluated at elaboration time). -/
 #eval Chernoff.tail 3 5
