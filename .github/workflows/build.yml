@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # elan reads lean-toolchain (leanprover/lean4:v4.14.0) and installs it on
+      # first use. No Mathlib cache is needed: this project is core-only.
+      - name: Install elan
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        shell: bash
+        run: |
+          set -o pipefail
+          lake build 2>&1 | tee build.log
+
+      # The root file carries `#print axioms` lines; a `sorryAx` here means a
+      # placeholder slipped into an audited theorem.
+      - name: Axiom audit
+        shell: bash
+        run: |
+          if grep -q "sorryAx" build.log; then
+            echo "::error::sorryAx found in the axiom audit"
+            exit 1
+          fi
+          echo "Axiom audit lines: $(grep -c 'depends on axioms' build.log)"
+
+      - name: Placeholder scan
+        shell: bash
+        run: |
+          if grep -rnE "^\s*(axiom|constant|sorry|admit)\b" CausalMohawkBridge/ CausalMohawkBridge.lean; then
+            echo "::error::placeholder declaration found"
+            exit 1
+          fi
+          echo "No axiom/constant/sorry/admit declarations."

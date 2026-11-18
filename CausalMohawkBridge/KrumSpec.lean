@@ -1,0 +1,130 @@
+/-!
+# Multi-Krum specification — ported from Sovereign-Mohawk-Proto
+
+Faithful port of `proofs/Specification/System.lean` (namespace `Specification`)
+from `github.com/rwilliamspbg-ops/Sovereign-Mohawk-Proto`, restricted to the
+Multi-Krum selection core. The upstream module is Mathlib-free, so the port
+compiles unchanged on this project's Lean 4.14.0 toolchain with no external
+dependencies. Definition names are preserved verbatim so the correspondence
+theorems in `KrumRefinement.lean` read exactly as they do upstream.
+
+Upstream Go counterpart: `internal/multikrum.go` (`MultiKrumSelect` /
+`MultiKrumAggregate`), whose `@ requires len(updates) > 2*f+2` safety envelope
+is formalized here by `multiKrumSelectSafe`. See
+`proofs/FORMAL_TRACEABILITY_MATRIX.md` row 12 for the full traceability story.
+-/
+namespace CausalMohawkBridge.KrumSpec
+
+abbrev FloatArray := List Float
+
+structure Node where
+  id : Nat
+  gradient : FloatArray
+  isByzantine : Bool
+
+structure Swarm where
+  nodes : List Node
+  krumNeighbors : Nat
+  dimension : Nat
+
+def honestNodes (nodes : List Node) : List Node :=
+  nodes.filter (fun n => not n.isByzantine)
+
+def addVector (a b : FloatArray) : FloatArray :=
+  List.zipWith (fun x y => x + y) a b
+
+def scaleVector (c : Float) (v : FloatArray) : FloatArray :=
+  v.map (fun x => c * x)
+
+def sqDist (a b : FloatArray) : Float :=
+  (List.zipWith (fun x y =>
+    let d := x - y
+    d * d) a b).foldl (fun acc x => acc + x) 0.0
+
+def getAt? {a : Type} : List a -> Nat -> Option a
+  | [], _ => none
+  | x :: _, 0 => some x
+  | _ :: xs, n + 1 => getAt? xs n
+
+def insertSorted (x : Float) : List Float -> List Float
+  | [] => [x]
+  | y :: ys =>
+      if x <= y then x :: y :: ys
+      else y :: insertSorted x ys
+
+def sortAsc : List Float -> List Float
+  | [] => []
+  | x :: xs => insertSorted x (sortAsc xs)
+
+def honestGradient (nodes : List Node) : Option FloatArray :=
+  match honestNodes nodes with
+  | [] => none
+  | first :: rest =>
+      let sum := rest.foldl (fun acc n => addVector acc n.gradient) first.gradient
+      let count := Float.ofNat (rest.length + 1)
+      some (scaleVector (1.0 / count) sum)
+
+/-- Krum score of candidate `idx`: the sum of squared distances to its `k`
+    nearest *other* candidates. -/
+def neighborScore (gradients : List FloatArray) (idx k : Nat) : Float :=
+  match getAt? gradients idx with
+  | none => 0.0
+  | some g =>
+      let dists := (List.range gradients.length).foldl
+        (fun acc j =>
+          if j = idx then acc
+          else match getAt? gradients j with
+               | none => acc
+               | some h => sqDist g h :: acc)
+        []
+      let smallest := (sortAsc dists).take k
+      smallest.foldl (fun acc x => acc + x) 0.0
+
+def argminAux (rest : List Float) (bestIdx idx : Nat) (best : Float) : Nat :=
+  match rest with
+  | [] => bestIdx
+  | x :: xs =>
+      if x < best then argminAux xs idx (idx + 1) x
+      else argminAux xs bestIdx (idx + 1) best
+
+def argmin? (xs : List Float) : Option Nat :=
+  match xs with
+  | [] => none
+  | x :: rest => some (argminAux rest 0 1 x)
+
+def multiKrumSelectImpl (nodes : List Node) (k : Nat) : Option FloatArray :=
+  let gradients := nodes.map Node.gradient
+  if gradients.isEmpty then none
+  else
+    let neighbors := Nat.min k (gradients.length - 1)
+    let scores := (List.range gradients.length).map (fun i => neighborScore gradients i neighbors)
+    match argmin? scores with
+    | none => none
+    | some idx => getAt? gradients idx
+
+/-- Row 12 gap 1 closure: precondition-safe sibling of `multiKrumSelectImpl`
+    whose accepted-input set matches Go's `MultiKrumSelect` safety envelope
+    exactly (`n > 2f + 2`). `multiKrumSelectImpl` itself is intentionally
+    unchanged. -/
+def multiKrumSelectSafe (nodes : List Node) (f : Nat) : Option FloatArray :=
+  let n := nodes.length
+  if n > 2 * f + 2 then multiKrumSelectImpl nodes (n - f - 2) else none
+
+/-- Row 12 gap 2 closure: general-`m` Multi-Krum selection (the `m`
+    lowest-scoring candidate indices, ranked ascending with lower-index-wins
+    tie-breaking). -/
+def insertSortedByScore (x : Nat × Float) : List (Nat × Float) → List (Nat × Float)
+  | [] => [x]
+  | y :: ys => if x.2 <= y.2 then x :: y :: ys else y :: insertSortedByScore x ys
+
+def sortAscByScore : List (Nat × Float) → List (Nat × Float)
+  | [] => []
+  | x :: xs => insertSortedByScore x (sortAscByScore xs)
+
+def multiKrumSelectManyImpl (nodes : List Node) (m k : Nat) : List Nat :=
+  let gradients := nodes.map Node.gradient
+  let neighbors := Nat.min k (gradients.length - 1)
+  let scored := (List.range gradients.length).map (fun i => (i, neighborScore gradients i neighbors))
+  (sortAscByScore scored).take m |>.map Prod.fst
+
+end CausalMohawkBridge.KrumSpec
