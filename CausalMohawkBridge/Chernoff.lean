@@ -234,6 +234,13 @@ theorem tail_bound (m k : Nat) {z : Int} (hz : 1 ≤ z) :
   rw [binomial] at hmain
   exact hmain
 
+/-- **Negative control.** `tail_bound` fails for `z < 1`: at `z = 0`, `k = 0`,
+    `m = 5` the left side is the full sum `2^5 = 32` while the right side is
+    `1^5 = 1`. -/
+theorem tail_bound_z_lt_one :
+    ¬ ((0 : Int) ^ 0 * tail 0 5 ≤ (1 + 0 : Int) ^ 5) := by
+  decide
+
 /-- `↑(a^n) = (↑a)^n` for `a : Nat`. -/
 theorem ofNat_pow (a : Nat) (k : Nat) : (a : Int) ^ k = ↑(a ^ k) := by
   induction k with
@@ -288,6 +295,15 @@ theorem tailNat_le (m k : Nat) : tailNat k m ≤ 3 ^ m := by
     Nat.le_mul_of_pos_left (n := (2 : Nat) ^ k) (tailNat k m)
       (Nat.pow_pos (a := 2) (n := k) (by omega))
   exact Nat.le_trans h1 hb
+
+/-- Cleared-denominator form of the Nat tail bound:
+    `tail · 2^(m+k) ≤ 2^m · 3^m`. -/
+theorem tailNat_cleared (m k : Nat) : tailNat k m * 2 ^ (m + k) ≤ 2 ^ m * 3 ^ m := by
+  have hb : (2 : Nat) ^ k * tailNat k m ≤ 3 ^ m := tailNat_bound m k
+  have h : (2 : Nat) ^ m * ((2 : Nat) ^ k * tailNat k m) ≤ (2 : Nat) ^ m * 3 ^ m :=
+    Nat.mul_le_mul_left ((2 : Nat) ^ m) hb
+  rw [← Nat.mul_assoc, ← Nat.pow_add 2 m k] at h
+  simpa [Nat.mul_comm, Nat.mul_left_comm, Nat.mul_assoc] using h
 
 /- Numerical sanity checks (evaluated at elaboration time). -/
 #eval Chernoff.tail 3 5

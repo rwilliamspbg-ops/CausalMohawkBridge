@@ -75,21 +75,26 @@ theorem epoch_count_quotient {n : Nat} {B sp : Int} {e₁ e₂ : Event}
   exact epoch_count_eq_rl hr s h
 
 /-- **Theorem 3.1 (composite).** For even `n ≥ 2`, spacing `sp > 0` and
-    `n·sp > 4B`, inside the window `K_B`: (i) the parity sector descends to the
-    quotient, (ii) quotient reachability lifts to genuine causal reachability,
-    and (iii) the induced epoch rotation count is the sum of the
-    null-coordinate increments. -/
+    `n·sp > 4B`, inside the window `K_B`: a quotient path from `e₁` to `e₂`
+    implies (i) its lifted realisation preserves the parity sector
+    (`OnParity e₁ → OnParity e₂`), (ii) quotient reachability lifts to genuine
+    causal reachability, and (iii) the induced epoch rotation count is the sum
+    of the null-coordinate increments. -/
 theorem theorem31 {n : Nat} {B sp : Int} {e₁ e₂ : Event} {s : EpochState}
     (hnpar : n % 2 = 0) (hsp : 0 < sp) (hn : 4 * B < n * sp) (hn2 : 2 ≤ n)
     (h₁ : ParityQuotient.Window B sp e₁) (h₂ : ParityQuotient.Window B sp e₂)
     (hq : ParityQuotient.QReach n (ParityQuotient.q n e₁) (ParityQuotient.q n e₂))
     (h : krumEnvelope s) :
-    (ParityQuotient.q n e₁ = ParityQuotient.q n e₂ → (OnParity e₁ ↔ OnParity e₂)) ∧
-      Reach e₁ e₂ ∧
+    (OnParity e₁ → OnParity e₂) ∧ Reach e₁ e₂ ∧
       ∃ s' L, EpochRot.Rot s s' L ∧ krumEnvelope s' ∧
         (L : Int) = (NullCoordinates.r e₂ - NullCoordinates.r e₁) +
           (NullCoordinates.l e₂ - NullCoordinates.l e₁) := by
-  refine ⟨ParityQuotient.q_parity (n := n) hnpar (e := e₁) (e' := e₂), ?_, ?_⟩
+  obtain ⟨e₂', hre', hqe₂'⟩ := ParityQuotient.qReach_lift hn2 hq
+  have hpar : OnParity e₁ → OnParity e₂ := by
+    intro hp
+    have hp' : OnParity e₂' := Reach.parity hre' hp
+    exact (ParityQuotient.q_parity (n := n) hnpar (e := e₂') (e' := e₂) hqe₂').mp hp'
+  refine ⟨hpar, ?_, ?_⟩
   · exact ParityQuotient.reach_of_qReach_of_noWinding hsp hn hn2 h₁ h₂ hq
   · exact epoch_count_quotient hsp hn hn2 h₁ h₂ hq h
 

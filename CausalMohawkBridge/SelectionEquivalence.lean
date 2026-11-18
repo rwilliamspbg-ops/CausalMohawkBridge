@@ -38,6 +38,27 @@ structure FloatOrderLaws where
     a ≤ b → b ≤ c → a ≤ c
   lt_irrefl : ∀ a : Float, ¬ a.isNaN → ¬ a < a
 
+/-! ### Scope of the trust boundary
+
+The eight fields are exactly the order laws `Float` would satisfy if it were a
+`LinearOrder` restricted to non-NaN values. They are *assumed*, not derived:
+Lean core defines `Float` comparison through an opaque `floatSpec`, and no
+`LinearOrder Float` instance exists. The non-NaN restriction is load-bearing:
+
+* `le_refl` fails for NaN: `(0.0/0.0 : Float) ≤ (0.0/0.0 : Float)` is `false`;
+* `le_antisymm` fails for NaN: both `≤` premises are `false`, so the hypothesis
+  is unsatisfiable and any total-order reasoning would be unsound;
+* `lt_irrefl` holds even for NaN (`¬ (NaN < NaN)` is `true`); it is included
+  for completeness.
+
+Every use site discharges the non-NaN side condition from `neighborScore`'s
+outputs (sums of non-negative squared distances of finite gradients, hence
+finite and non-NaN). -/
+
+#eval ((0.0 : Float) ≤ (0.0 : Float))
+#eval ((0.0 / 0.0 : Float).isNaN)
+#eval ((0.0 / 0.0 : Float) ≤ (0.0 / 0.0 : Float))
+
 /-- "The lowest-index, lowest-scoring index," matching `argmin?`/`argminAux`'s
 tie-break convention (scan ascending index, replace best only on strict
 improvement, so the first-encountered minimum wins ties). -/

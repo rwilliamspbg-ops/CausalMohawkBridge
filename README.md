@@ -56,7 +56,21 @@ on the root alone:
 lake env lean CausalMohawkBridge.lean
 ```
 
+`make ci` runs the same gate as `.github/workflows/build.yml`: `build`,
+`audit`, and `lint` (the vacuous-claim scan in `scripts/lint_vacuous_claims.py`).
+
 No `sorry` or global `axiom` appears in the sources.
+
+## Provenance and non-claims
+
+- `PREPRINT_MAPPING.md` maps the external preprint's statements to the Lean
+  theorems and logs every deviation (strengthened / weakened / analogue / open).
+  The preprint text is **not** in this repository; the mapping is reconstructed
+  from the correspondence that motivated the work.
+- `NONCLAIMS.md` lists what is deliberately not established: the Theorem 5.2
+  analytic clause, "arbitrarily fine" affine refinement, the missing `Rat`,
+  the `FloatOrderLaws` trust boundary, and the empirical (not machine-checked)
+  Go↔Lean correspondence.
 
 ## Claim status
 
@@ -70,7 +84,9 @@ No `sorry` or global `axiom` appears in the sources.
   `NullCoordinates.reach_t_eq_rl`.
 - **Parity quotient.** `ParityQuotient.q_parity` (even `n` preserves the parity
   sector), `ParityQuotient.reach_of_qReach_of_noWinding` (discrete `ℓ_n > 4B`
-  implies quotient reachability lifts), `ParityQuotient.reach_j_bound`.
+  implies quotient reachability lifts), `ParityQuotient.reach_j_bound`,
+  `reach_of_qReach_of_noWinding_unit` (`sp = 1`), and the negative controls
+  `noWinding_hypothesis_load_bearing`, `q_parity_odd_counterexample`.
 - **Epoch bridge.** `Bridge.reach_to_epochs`, `EpochRot.Rot.epoch_eq`,
   `EpochRot.reach_to_rot`, `PreprintBridge.epoch_count_eq_rl`,
   `PreprintBridge.epoch_count_quotient` (rotation count = sum of null-coordinate
@@ -86,15 +102,19 @@ No `sorry` or global `axiom` appears in the sources.
   `commonRefinement_linear_arbitrary`, `hMap_iff_dvd_cd` (invariance iff the
   modulus divides the translation part), `sq_sub_eq_one` (over `Int`,
   `a²-b²=1` forces `(a,b)=(±1,0)`, so the integer affine group is degenerate and
-  the non-trivial content is `ScaledLorentz`), `Q_scaled`, `Q_word`.
+  the non-trivial content is `ScaledLorentz`), `sq_sub_eq_one_converse`,
+  `Q_scaled`, `Q_word`.
 - **Chernoff.** `Chernoff.binomial`, `Chernoff.tail_bound`, `tailNat_bound`,
-  `tailNat_le`; normalisation in `Composition.chernoff_tail_two`,
+  `tailNat_le`, `tailNat_cleared`, `tail_bound_z_lt_one` (negative control);
+  normalisation in `Composition.chernoff_tail_two`,
   `chernoff_probability_bound`, `chernoff_probability_tail`,
-  `chernoff_probability_form`, `chernoff_probability_bound_nat`, and
-  `Composition.tailProbSys_repair` (the `ProbSys`/`probRepair` instance).
+  `chernoff_probability_form`, `chernoff_probability_bound_nat`,
+  `Composition.probRepairProb` (probability form) and
+  `Composition.tailProbSys_prob`.
 - **Composition vocabulary.** `Composition.preservesStar_of_preserves`,
   `causalSys_preserves`, `epochSys_preserves`, `lorentzQSys_preserves`,
-  `nullQSys_preserves`, `probRepair_of_le`.
+  `scaledLorentzQSys_preserves` (non-degenerate rational Lorentz instance,
+  via `qPreservesScaled`), `nullQSys_preserves`, `probRepair_of_le`.
 
 ### Deliberately not formalized
 

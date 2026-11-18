@@ -99,8 +99,34 @@ theorem lorentzQSys_preserves : qPreserves lorentzQSys := by
   rw [show p' = L.apply p from h1, show q' = L.apply q from h2]
   exact Lorentz.Q_apply_sub L p q
 
-/-! ## Instance 4: the null-coordinate increment along a causal path -/
+/-- Preservation up to a positive integer scale factor. Exact `qPreserves` is
+    the `c = 1` case; rational Lorentz maps scale the interval by `N²`, so they
+    satisfy this instead. -/
+def qPreservesScaled (Q : QSys σ) : Prop :=
+  ∀ p q p' q', Q.pstep (p, q) (p', q') →
+    ∃ c : Int, 0 < c ∧ Q.val p' q' = c * Q.val p q
 
+/-! ## Instance 3b: the non-degenerate (rational) Lorentz maps -/
+
+/-- `ScaledLorentz` represents a rational affine Lorentz map; unlike the
+    degenerate integer `ALorentz`, its linear part is non-trivial. -/
+def scaledLorentzQSys : QSys (Int × Int) where
+  pstep := fun p q => ∃ L : Lorentz.ScaledLorentz,
+    q.1 = L.apply p.1 ∧ q.2 = L.apply p.2
+  val := fun p q => Lorentz.Q (Lorentz.psub p q)
+
+theorem scaledLorentzQSys_preserves : qPreservesScaled scaledLorentzQSys := by
+  intro p q p' q' hp
+  obtain ⟨L, h1, h2⟩ := hp
+  refine ⟨L.N ^ 2, ?_, ?_⟩
+  · rw [show (2 : Nat) = 1 + 1 from rfl, Int.pow_succ,
+      show (1 : Nat) = 0 + 1 from rfl, Int.pow_succ, Int.pow_zero, Int.one_mul]
+    exact Int.mul_pos L.hN L.hN
+  · rw [show p' = L.apply p from h1, show q' = L.apply q from h2]
+    dsimp only [scaledLorentzQSys]
+    exact Lorentz.Q_scaled L p q
+
+/-! ## Instance 4: the null-coordinate increment along a causal path -/
 def nullQSys : QSys Event where
   pstep := fun p q => Step p.1 q.1 ∧ Step p.2 q.2
   val := fun p q =>
@@ -136,17 +162,26 @@ theorem nullQSys_preserves : qPreserves nullQSys := by
 
 /-! ## The probabilistic instance (hypothesis) -/
 
-/-- A probabilistic system: a state system plus a failure counter. The
-    exponential decay of the counter is an *assumption* (the Chernoff bound),
-    not a deterministic consequence. -/
+/-- A probabilistic system: a state system plus a failure counter. -/
 structure ProbSys (σ : Type) where
   sys : Sys σ
   fail : σ → Nat
 
-/-- The probabilistic repair hypothesis: along any chain the failure counter
-    stays below an exponentially small bound. -/
+/-- The repair hypothesis on the failure **count**: along any chain the counter
+    stays at or below `bound`. This is a raw count, not a probability — for the
+    binomial tail `3^m` is exponentially *large*, so do not read it as a
+    probability bound. -/
 def probRepair (P : ProbSys σ) (bound : Nat) : Prop :=
   ∀ s s', ReachStar P.sys.step s s' → P.sys.inv s → P.fail s' ≤ bound
+
+/-- The failure-**probability** bound, in cleared-integer form. A counter `f`
+    with `f · 2^(m+k) ≤ 2^m · 3^m` gives
+    `f / 2^m ≤ 3^m / 2^(m+k) = (3/4)^m · 2^(m-k)`, i.e. the probability that
+    the counter reaches the threshold `k` out of `m` trials decays
+    exponentially in `k`. -/
+def probRepairProb (P : ProbSys σ) (m k : Nat) : Prop :=
+  ∀ s s', ReachStar P.sys.step s s' → P.sys.inv s →
+    P.fail s' * 2 ^ (m + k) ≤ 2 ^ m * 3 ^ m
 
 /-- A uniform bound on the failure counter yields the repair hypothesis. -/
 theorem probRepair_of_le {σ : Type} (P : ProbSys σ) {b : Nat}
@@ -158,12 +193,18 @@ def tailProbSys (m k : Nat) : ProbSys Unit where
   sys := { step := fun _ _ => False, inv := fun _ => True }
   fail := fun _ => Chernoff.tailNat k m
 
-/-- Its failure counter satisfies the repair hypothesis with the Chernoff
-    tail bound `3^m`. -/
+/-- Its failure counter satisfies the count repair hypothesis with the
+    Chernoff tail bound `3^m`. -/
 theorem tailProbSys_repair (m k : Nat) :
     probRepair (tailProbSys m k) (3 ^ m) := by
   intro s s' _ _
   exact Chernoff.tailNat_le m k
+
+/-- Its failure counter satisfies the cleared probability bound. -/
+theorem tailProbSys_prob (m k : Nat) :
+    probRepairProb (tailProbSys m k) m k := by
+  intro s s' _ _
+  exact Chernoff.tailNat_cleared m k
 
 /-- **Chernoff tail bound, `z = 2`.** The upper tail of the binomial
     distribution satisfies `2^k · ∑_{i≥k} C(m,i) ≤ 3^m`; after dividing by

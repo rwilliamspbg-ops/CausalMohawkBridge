@@ -45,3 +45,9 @@ jobs:
             exit 1
           fi
           echo "No axiom/constant/sorry/admit declarations."
+
+      # Vacuous-claim lint: declarations typed `True`, reflexive `X = X`
+      # conclusions, and `sorry`/`admit` inside proof bodies.
+      - name: Vacuous-claim lint
+        shell: bash
+        run: python3 scripts/lint_vacuous_claims.py

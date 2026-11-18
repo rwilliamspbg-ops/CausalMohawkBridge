@@ -69,6 +69,11 @@ theorem sq_sub_eq_one {a b : Int} (h : a^2 - b^2 = 1) :
   · exfalso; rw [h1, h2] at hfac'; omega
   · exact ⟨by omega, Or.inr (by omega)⟩
 
+/-- Converse of `sq_sub_eq_one`: a nonzero `b` makes `a²-b² ≠ 1`. -/
+theorem sq_sub_eq_one_converse {a b : Int} (hb : b ≠ 0) : a^2 - b^2 ≠ 1 := by
+  intro h
+  exact hb (sq_sub_eq_one h).1
+
 /-- The interval-preservation identity `(a x + b y)² - (b x + a y)² =
     (a² - b²)(x² - y²)`. -/
 theorem lorentz_interval_aux (a b x y : Int) :

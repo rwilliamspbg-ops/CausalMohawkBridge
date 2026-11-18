@@ -35,7 +35,10 @@ inductive QReach (n : Nat) : QEvent → QEvent → Prop
   | refl (a : QEvent) : QReach n a a
   | tail {a b c : QEvent} : QReach n a b → QStep n b c → QReach n a c
 
-/-- Physical observation window `K_B = [-B,B]²` with lattice spacing `sp`. -/
+/-- Physical observation window `K_B = [-B,B]²` with lattice spacing `sp`:
+    `sp * e.t` and `sp * e.j` are the physical coordinates of `e`, and `B` is
+    the window half-width in physical units. The circumference is `n * sp`, so
+    `4 * B < n * sp` is the discrete `ℓ_n = n · a_n > 4B` with `a_n = sp`. -/
 def Window (B sp : Int) (e : Event) : Prop :=
   -B ≤ sp * e.t ∧ sp * e.t ≤ B ∧ -B ≤ sp * e.j ∧ sp * e.j ≤ B
 
@@ -230,5 +233,41 @@ theorem reach_of_qReach_of_noWinding {n : Nat} {B sp : Int} {e₁ e₂ : Event}
       simp only at ht hj
       rw [ht, hj] at hre'
       exact hre'
+
+/-- The `sp = 1` case recovers the unit-lattice window. -/
+theorem reach_of_qReach_of_noWinding_unit {n : Nat} {B : Int} {e₁ e₂ : Event}
+    (hn : 4 * B < n) (hn2 : 2 ≤ n)
+    (h₁ : Window B 1 e₁) (h₂ : Window B 1 e₂)
+    (h : QReach n (q n e₁) (q n e₂)) : Reach e₁ e₂ :=
+  reach_of_qReach_of_noWinding (sp := 1) (by omega) (by omega) hn2 h₁ h₂ h
+
+/-! ## Negative controls (the hypotheses are load-bearing) -/
+
+/-- **Negative control.** Without `4B < n·sp` the no-winding lift fails: the
+    two events below are quotient-equivalent (same `t`, `j` differing by `n`),
+    so a trivial quotient path joins them, but no lifted causal path does. -/
+theorem noWinding_hypothesis_load_bearing {n : Nat} (hn : 2 ≤ n) :
+    QReach n (q n (⟨0, 0⟩ : Event)) (q n (⟨0, n⟩ : Event)) ∧
+      Window n 1 (⟨0, n⟩ : Event) ∧ Window n 1 (⟨0, 0⟩ : Event) ∧
+      ¬ Reach (⟨0, 0⟩ : Event) (⟨0, n⟩ : Event) := by
+  have hq : q n (⟨0, 0⟩ : Event) = q n (⟨0, n⟩ : Event) := by
+    simp [q]
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · rw [hq]; exact QReach.refl _
+  · unfold Window; dsimp only; omega
+  · unfold Window; dsimp only; omega
+  · intro h
+    have hnull : NullReachable (⟨0, 0⟩ : Event) (⟨0, n⟩ : Event) :=
+      (reach_iff_null _ _).mp h
+    obtain ⟨a, b, ht, hj⟩ := hnull
+    simp only at ht hj
+    omega
+
+/-- **Negative control.** `q_parity` fails for odd `n`: `q 3` identifies
+    `(0,0)` and `(0,3)`, which lie in different parity sectors. -/
+theorem q_parity_odd_counterexample :
+    q 3 (⟨0, 0⟩ : Event) = q 3 (⟨0, 3⟩ : Event) ∧
+      ¬ (OnParity (⟨0, 0⟩ : Event) ↔ OnParity (⟨0, 3⟩ : Event)) := by
+  simp [q, OnParity, u]
 
 end CausalMohawkBridge.ParityQuotient
