@@ -134,3 +134,8 @@ No `sorry` or global `axiom` appears in the sources.
 - `SelectionEquivalence.FloatOrderLaws` (IEEE-754 comparison laws for non-NaN
   doubles) is an **explicit structure argument, not an axiom** — the single
   trust boundary of that module, visible at each use site.
+
+See `NONCLAIMS.md` for the full list, including the `probRepair` count-vs-probability
+distinction, the missing `n ≥ 4`, and the assumed lattice-spacing convention.
+Every load-bearing hypothesis has a machine-checked negative control (see
+`PREPRINT_MAPPING.md`).
